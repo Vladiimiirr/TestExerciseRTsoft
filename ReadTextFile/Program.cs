@@ -40,6 +40,7 @@ namespace ReadTextFile
                foreach (XElement el in add)
                {
 
+
                    Console.WriteLine(el.Value);
                }*/
 
