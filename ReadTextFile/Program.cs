@@ -17,6 +17,8 @@ namespace ReadTextFile
         {
             List<DateStation> dateStationList = new List<DateStation>();
             List<SynchronousMachine> synchronousMachine = new List<SynchronousMachine>();
+            List<SynchronousMachine> synMachines = new List<SynchronousMachine>();
+            string str = "";
 
             XElement root = XElement.Load("C:\\Users\\User\\Desktop\\Example.xml");
             XNamespace cim = "http://iec.ch/TC57/2014/CIM-schema-cim16#";
@@ -25,8 +27,12 @@ namespace ReadTextFile
             IEnumerable<XElement> idSubstation =
                from element in root.Elements(cim + "Substation")
                select element;
-            foreach (XElement element in idSubstation)
+            foreach (XElement element in idSubstation) 
+            {
                 dateStationList.Add(new DateStation(element.Attribute(rdf + "about").Value.ToString(), "", "", "", ""));
+                synMachines.Add(new SynchronousMachine(element.Attribute(rdf + "about").Value.ToString(), ""));
+            }
+                
 
 
             IEnumerable<XElement> substation =
@@ -80,7 +86,6 @@ namespace ReadTextFile
                 }
             }
 
-
             IEnumerable<XElement> synchronousMachineID =
                     from element in root.Descendants(cim + "SynchronousMachine")
                     select element;
@@ -129,168 +134,83 @@ namespace ReadTextFile
 
 
 
-            foreach (SynchronousMachine machine in synchronousMachine)
+            for (int i = 0;i<synMachines.Count();i++) { 
+                IEnumerable<XElement> idVoltageLevel =
+                                 from element in root.Elements(cim + "Substation")
+                                 where (string)element.Attribute(rdf + "about") == synMachines[i].GetSynSubstationID()
+                                 select element;
+                if (!idVoltageLevel.Any())
+                {
+                    dateStationList[i].SetGeneratorID("Элемент не найден!");
+                }
+
+                foreach (XElement element in idVoltageLevel)
+                {
+                    IEnumerable<XElement> elem = element.Elements(cim + "Substation.VoltageLevels");
+                    foreach (XElement xElem in elem)
+                    {
+                        if (xElem != null)
+                        {
+                            if (elem.Count() > 1)
+                            {
+                                str += xElem.Attribute(rdf + "resource").Value + " ";
+                            }
+                            else
+                            {
+                                str = xElem.Attribute(rdf + "resource").Value;
+                            }
+                        }
+                    }
+                }
+                synMachines[i].SetVoltageLevelsIDCount(str);
+                str = "";
+            }
+
+            for (int i = 0;i<synMachines.Count();i++) 
+            {
+                string[] arr = synMachines[i].GetVoltageLevelsIDCount().Split(new char[] { ' ' });
+                foreach (string stringsID in arr)
+                {
+                    for (int j = 0; j < synchronousMachine.Count(); j++) 
+                    {
+                        if (synchronousMachine[j].GetEquipmentContainer().Equals(stringsID)) 
+                        {
+                            str += synchronousMachine[j].GetTypeGeneratorName() + " "; 
+                        }  
+                    }
+                   
+                }
+
+                if (str.Equals(""))
+                {
+                    dateStationList[i].SetGeneratorName("Тип не найден!");
+                }
+                else 
+                {
+                   dateStationList[i].SetGeneratorName(str); 
+                }
+                str = string.Empty;
+            }
+
+
+         /*   foreach (SynchronousMachine machine in synchronousMachine)
             {
                 Console.WriteLine(machine.GetEquipmentContainer() + "   " + machine.GetTypeGeneratorName() + " " + machine.GetSynchronousMachineID());
             }
-            Console.WriteLine("___________________________________________________");
+            Console.WriteLine("___________________________________________________");*/
             foreach (DateStation station in dateStationList)
             {
                 Console.WriteLine(station.GetSubstationID() + " | " + station.GetGeneratorID() + "|" + station.GetVoltageLevel() + " | " + station.GetNameSubstation() + "|" + station.GetGeneratorName());
             }
 
-            #region
-            /*    dateStationList.Add(new DateStation("1","2","3","4"));
-             Console.WriteLine(dateStationList[0].GetID());
-             dateStationList[0].SetID("8");
-             Console.WriteLine(dateStationList[0].GetID());
-    */
-
-
-            /*     //запрос получение типа генератора
-            for (int i = 0; i < dateStationList.Count; i++)
+         /*   foreach (DateStation dateSt in dateStationList)
             {
-                IEnumerable<XElement> nameGenerator =
-              from element in root.Descendants(cim + "SynchronousMachine")
-              select element.Element(cim + "IdentifiedObject.name");
-
-                foreach (XElement element in nameGenerator)
-                {
-
-                    Console.WriteLine(element.Value);
-                }
+                Console.WriteLine(dateSt.GetGeneratorName());
             }*/
 
 
-            /*         //запрос на получения типа генератора
-                     IEnumerable<XElement> address =
-                         from el in root.Descendants(cim + "SynchronousMachine")
-                         select el.Element(cim + "Equipment.EquipmentContainer");
-                     foreach (XElement el in address)
-                     {
-                         if (el != null)
-                             for (int i = 0; i < dateStationList.Count; i++) 
-                             {
-                                 if (el.Attribute(rdf + "resource").Value.Equals(dateStationList[i].GetGeneratorID())) 
-                                 {
-
-                                     dateStationList[i].SetGeneratorName("");
-                                 }
-                             }
-                             Console.WriteLine(el.Attribute(rdf + "resource").Value);
-
-                     }*/
-
-
-
-            //запрос VoltageLevels id
-            /*IEnumerable<XElement> add =
-               from el in root.Descendants(cim + "Substation")
-               select el.Element(cim + "Substation.VoltageLevels");
-
-            foreach (XElement el in add)
-            {
-
-            // XElement idVoltageLevels = el;
-            //      if (idVoltageLevels != null)
-            //        Console.WriteLine(idVoltageLevels.LastAttribute.Value);*/
-
-            /* if (el != null)
-                 Console.WriteLine(el.Attribute(rdf + "resource").Value);
-         }*/
-
-            /*    //получения id станции
-                IEnumerable<XElement> address =
-                  from el in root.Descendants(cim + "Substation")
-                      // where (string)el.Attribute(rdf+"about")=="#_ded01782-8a0b-44b9-9c60-27ebbaac0a08"
-
-                             select el;
-                foreach (XElement el in address)
-                {
-                    Console.WriteLine(el.Attribute(rdf+ "about"));
-
-                }*/
-
-            /*   //получения id станции
-               IEnumerable<XElement> address =
-                 from el in root.Descendants(cim + "Substation")
-                 where (string)el.Attribute(rdf+"about")=="#_ded01782-8a0b-44b9-9c60-27ebbaac0a08"
-                 select el.Element(cim+ "Substation.VoltageLevels");
-               foreach (XElement el in address)
-               {
-                   if(el!=null)
-                   Console.WriteLine(el.Attribute(rdf+ "resource").Value);
-               }*/
-
-
-            //получения по id имени станции
-            /*     IEnumerable<XElement> address =
-                   from el in root.Descendants(cim + "Substation")
-                   where (string)el.Attribute(rdf + "about") == "#_95a391a0-f448-48e7-abef-24277dadf611"
-                   select el.Element(cim + "IdentifiedObject.name");
-                 foreach (XElement el in address)
-                 {
-                    Console.WriteLine(el.Value);
-                 }*/
-
-
-
-            /*
-                        XElement root = XElement.Load("C:\\Users\\User\\Desktop\\Example.xml");
-                        XNamespace cim = "http://iec.ch/TC57/2014/CIM-schema-cim16#";
-                        XNamespace rdf = "http://www.w3.org/1999/02/22-rdf-syntax-ns#";
-
-                        IEnumerable<XElement> address =
-                            from el in root.Elements(cim+ "VoltageLevel.Substation")
-
-                            select el;
-                        foreach (XElement el in address)
-                        {
-                            Console.WriteLine(el);
-                        }
-            */
-            #endregion
-
-            /*   string str = string.Empty;
-
-               IEnumerable<XElement> idVoltageLevels =
-                                from element in root.Elements(cim + "Substation")
-                                where (string)element.Attribute(rdf + "about") == "#_5be426a2-1472-47cb-83ae-1825f4991a9e"
-                                select element;
-               if (!idVoltageLevels.Any())
-               {
-                   Console.WriteLine("Элемент не найден!");
-               }
-
-               foreach (XElement element in idVoltageLevels)
-               {
-                   IEnumerable<XElement> elem = element.Elements(cim + "Substation.VoltageLevels");
-                   Console.WriteLine(elem.Count());
-                   foreach (XElement xElem in elem)
-                   {
-                       if (xElem != null)
-                       {
-                           if (elem.Count() > 1)
-                           {
-                               Console.WriteLine(xElem.Attribute(rdf + "resource").Value);
-                               str += xElem.Attribute(rdf + "resource").Value + " ";
-                           }
-                           else
-                           {
-                               Console.WriteLine(xElem.Attribute(rdf + "resource").Value);
-                           }
-                       }
-                   }
-               }
-
-               Console.WriteLine(str);
-               string[] arr = str.Split(new char[] {' '});
-               foreach (string s in arr) 
-               {
-                   Console.WriteLine(s);
-               }
-               Console.ReadLine();
-               }*/
+            Console.ReadLine();
+            }
         }
     }
     internal class  DateStation 
@@ -363,15 +283,42 @@ namespace ReadTextFile
 
     internal class SynchronousMachine
     {
-    private string equipmentContainer;
-    private string typeGeneratorName;
-    private string synchronousMachineID;
+        private string equipmentContainer;      //id на генератор
+        private string typeGeneratorName;       //тип генератора
+        private string synchronousMachineID;    //id блока данных, где id и тип генератор
+        private string voltageLevelsIDCount;    //несколько id в одном поле
+        private string synSubstationID;            //id станций
+    public SynchronousMachine(string substationID, string voltageLevelsIDCount)
+    {
+        this.synSubstationID = substationID;
+        this.voltageLevelsIDCount = voltageLevelsIDCount; 
+    }
 
     public SynchronousMachine(string synchronousMachineID, string equipmentContainer, string typeName)
     {
         this.equipmentContainer = equipmentContainer;
         this.typeGeneratorName = typeName;
         this.synchronousMachineID = synchronousMachineID;
+    }
+
+    public string GetSynSubstationID()
+    {
+        return synSubstationID;
+    }
+
+    public void SetSynSubstationID(string value)
+    {
+        synSubstationID = value;
+    }
+
+    public string GetVoltageLevelsIDCount()
+    {
+        return voltageLevelsIDCount;
+    }
+
+    public void SetVoltageLevelsIDCount(string value)
+    {
+        voltageLevelsIDCount = value;
     }
 
     public string GetSynchronousMachineID()
